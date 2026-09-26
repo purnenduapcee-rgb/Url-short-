@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Please Wait... Loading Link</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; margin: 0; padding: 20px; }
+        .container { background: #fff; max-width: 700px; margin: auto; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .ad-box { background: #e0e0e0; border: 1px dashed #666; margin: 15px 0; padding: 20px; text-align: center; }
+        .banner-ad { height: 90px; line-height: 90px; }
+        .video-ad { height: 250px; line-height: 250px; background: #333; color: #fff; position: relative; }
+        .btn { padding: 15px 30px; font-size: 18px; color: white; background: #ccc; border: none; border-radius: 5px; cursor: not-allowed; }
+        .btn.active { background: #28a745; cursor: pointer; }
+        .status { font-weight: bold; margin: 10px 0; color: #d9534f; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Your link is almost ready</h2>
+
+    <!-- Display Ad Slot 1 -->
+    <div class="ad-box banner-ad">
+        [ DISPLAY AD SLOT #1 (Banner 728x90) ]
+    </div>
+
+    <!-- Video Ad Simulation Slot -->
+    <div class="ad-box video-ad" id="videoAdContainer">
+        <h3 id="adStepText">Watching Ad 1 of 3...</h3>
+        <p id="adTimerText">Time Remaining for current ad: 30s</p>
+    </div>
+
+    <!-- Display Ad Slot 2 -->
+    <div class="ad-box banner-ad">
+        [ DISPLAY AD SLOT #2 (Banner 728x90) ]
+    </div>
+
+    <div class="status" id="totalStatus">Total Time Remaining: 90s</div>
+
+    <button id="getLinkBtn" class="btn" disabled>Get Link</button>
+</div>
+
+<script>
+    const shortId = window.location.pathname.split('/').pop();
+
+    let currentAdIndex = 1;
+    let timePerAd = 30; 
+    let totalAds = 3;
+    let totalRemaining = totalAds * timePerAd;
+
+    const adStepText = document.getElementById('adStepText');
+    const adTimerText = document.getElementById('adTimerText');
+    const totalStatus = document.getElementById('totalStatus');
+    const getLinkBtn = document.getElementById('getLinkBtn');
+
+    let currentAdTime = timePerAd;
+
+    const countdown = setInterval(() => {
+        currentAdTime--;
+        totalRemaining--;
+
+        adTimerText.innerText = `Time Remaining for current ad: ${currentAdTime}s`;
+        totalStatus.innerText = `Total Time Remaining: ${totalRemaining}s`;
+
+        if (currentAdTime <= 0 && currentAdIndex < totalAds) {
+            currentAdIndex++;
+            currentAdTime = timePerAd;
+            adStepText.innerText = `Watching Ad ${currentAdIndex} of 3...`;
+        }
+
+        if (totalRemaining <= 0) {
+            clearInterval(countdown);
+            adStepText.innerText = "All ads completed!";
+            adTimerText.innerText = "";
+            totalStatus.innerText = "Link Ready!";
+            
+            getLinkBtn.disabled = false;
+            getLinkBtn.classList.add('active');
+            getLinkBtn.innerText = "Get Link";
+            getLinkBtn.addEventListener('click', redirectToDestination);
+        }
+    }, 1000);
+
+    async function redirectToDestination() {
+        const res = await fetch('/api/get-destination', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shortId })
+        });
+
+        const data = await res.json();
+        if (data.destination) {
+            window.location.href = data.destination;
+        } else {
+            alert('Error fetching link target.');
+        }
+    }
+</script>
+
+</body>
+</html>
