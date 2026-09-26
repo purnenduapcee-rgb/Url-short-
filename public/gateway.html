@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unlock Your Destination Link</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+        .container { background: var(--card-bg); width: 100%; max-width: 550px; border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; }
+        h2 { margin-bottom: 8px; font-size: 1.5rem; font-weight: 700; color: #fff; }
+        p.subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+
+        .ad-banner { background: #0f172a; border: 1px dashed #475569; border-radius: 8px; padding: 15px; margin: 15px 0; color: var(--text-muted); font-size: 0.85rem; }
+
+        .rewarded-box { background: #0f172a; border: 2px solid #334155; border-radius: 12px; padding: 20px; margin: 20px 0; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+        
+        .progress-bar-container { width: 100%; background: #334155; border-radius: 8px; height: 10px; overflow: hidden; margin-top: 15px; }
+        .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #4f46e5, #22c55e); transition: width 0.3s ease; }
+
+        .warning-badge { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; margin-top: 10px; display: none; }
+
+        .btn { width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.4s ease; outline: none; margin-top: 10px; }
+        .btn-start { background: var(--primary); color: #fff; }
+        .btn-start:hover { background: var(--primary-hover); }
+        
+        .btn-unlock { background: var(--accent); color: #fff; opacity: 0; visibility: hidden; transform: translateY(10px); }
+        .btn-unlock.show { opacity: 1; visibility: visible; transform: translateY(0); }
+
+        .ad-step-title { font-size: 1.1rem; font-weight: 600; color: #38bdf8; margin-bottom: 5px; }
+        .timer-text { font-size: 2rem; font-weight: 800; color: #fff; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>File Ready To Download</h2>
+    <p class="subtitle">Complete 3 rewarded ad viewings to unlock your link.</p>
+
+    <!-- TOP DISPLAY AD SLOT -->
+    <div class="ad-banner" id="topAdSlot">
+        <!-- Replace this comment with your Monetag/Adsterra Banner Script -->
+        [ DISPLAY AD UNIT #1 ]
+    </div>
+
+    <div class="rewarded-box" id="rewardedContainer">
+        <div id="initialState">
+            <p style="color: var(--text-muted); margin-bottom: 15px;">Click below to start step 1 of 3</p>
+            <button class="btn btn-start" id="startAdsBtn" onclick="startAdProcess()">View Ad 1 of 3</button>
+        </div>
+
+        <div id="activeState" style="display: none; width: 100%;">
+            <div class="ad-step-title" id="adStepTitle">Step 1: Rewarded Ad Active</div>
+            <div class="timer-text" id="timerDisplay">30s</div>
+            
+            <!-- REWARDED / VIDEO AD CODE EMBEDDED HERE -->
+            <div class="ad-banner" style="margin: 10px 0;" id="rewardedAdEmbed">
+                <!-- Replace with your Video/Rewarded Ad Script -->
+                [ REWARDED AD UNIT SHOWING HERE ]
+            </div>
+
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <div class="warning-badge" id="pauseWarning">
+                ⚠️ Timer Paused! Stay on this tab to continue ad timer.
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM DISPLAY AD SLOT -->
+    <div class="ad-banner" id="bottomAdSlot">
+        <!-- Replace this comment with your Monetag/Adsterra Banner Script -->
+        [ DISPLAY AD UNIT #2 ]
+    </div>
+
+    <!-- UNLOCK DESTINATION LINK BUTTON -->
+    <button id="getLinkBtn" class="btn btn-unlock" onclick="redirectToMediafire()">Get Link (Redirect to Destination)</button>
+</div>
+
+<script>
+    const shortId = window.location.pathname.split('/').pop();
+    
+    let currentStep = 1;
+    const totalSteps = 3;
+    const timePerAd = 30; // 30 seconds per ad
+    let secondsLeft = timePerAd;
+    let timerInterval = null;
+    let isTabActive = true;
+
+    // Detect if user switches tab or minimizes window
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden) {
+            isTabActive = false;
+            if (timerInterval) {
+                document.getElementById('pauseWarning').style.display = 'block';
+            }
+        } else {
+            isTabActive = true;
+            document.getElementById('pauseWarning').style.display = 'none';
+        }
+    });
+
+    function startAdProcess() {
+        document.getElementById('initialState').style.display = 'none';
+        document.getElementById('activeState').style.display = 'block';
+        runStepTimer();
+    }
+
+    function runStepTimer() {
+        secondsLeft = timePerAd;
+        document.getElementById('adStepTitle').innerText = `Step ${currentStep} of ${totalSteps}: Watching Rewarded Ad`;
+        updateDisplay();
+
+        timerInterval = setInterval(() => {
+            if (!isTabActive) return; // Pause countdown if user leaves tab
+
+            secondsLeft--;
+            updateDisplay();
+
+            if (secondsLeft <= 0) {
+                clearInterval(timerInterval);
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    alert(`Step ${currentStep - 1} complete! Click OK to start Step ${currentStep}.`);
+                    runStepTimer();
+                } else {
+                    completeAllSteps();
+                }
+            }
+        }, 1000);
+    }
+
+    function updateDisplay() {
+        document.getElementById('timerDisplay').innerText = `${secondsLeft}s`;
+        const percent = ((timePerAd - secondsLeft) / timePerAd) * 100;
+        document.getElementById('progressBar').style.width = `${percent}%`;
+    }
+
+    function completeAllSteps() {
+        document.getElementById('rewardedContainer').style.display = 'none';
+        
+        // Smoothly fade in the Get Link button
+        const linkBtn = document.getElementById('getLinkBtn');
+        linkBtn.classList.add('show');
+    }
+
+    async function redirectToMediafire() {
+        try {
+            const res = await fetch('/api/get-destination', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shortId })
+            });
+
+            const data = await res.json();
+            if (data.destination) {
+                window.location.href = data.destination;
+            } else {
+                alert('Error fetching mediafire destination link.');
+            }
+        } catch (err) {
+            alert('Network error. Please try again.');
+        }
+    }
+</script>
+
+</body>
+      </html>
+      
